@@ -1,4 +1,6 @@
 
+import processing.video.*;
+
 /*
 COLOR DETECTION
 Jeff Thompson | 2017 | jeffreythompson.org
@@ -21,37 +23,72 @@ need to ensure our camera was calibrated for the task and
 that we could control, or measure, the light temperature.
 
 CHALLENGES:
++ You'll notice that our tracking is quite jumpy. One way to
+  fix that is to perform a running average of the location, a
+  process called "smoothing". Can you implement this in the code
+  below? (Hint: you'll need an array of points, which is constantly
+  shifted and averaged.)
++ In the BlobTracking example, we use brightness to create a
+  binary image, from which blobs can be extracted. But we could
+  also isolate color regions this way, and then run the blob
+  tracking algorithm to find areas of color. Can you extend
+  the code below to create a binary image, where the desired
+  color is white and everything else black?
 + We can also find the very approximate center of this color
-  blob by averaging the location of all pixels with that 
+  blob by averaging the x/y location of all pixels with that 
   color – can you add that to our function below, returning
   the center instead of the first match? (Hint: create an
   ArrayList of PVectors to store all matches, then average them.)
 
 */
 
-color colorToMatch = color(0);    // color to look for
-float tolerance =    10;          // how much wiggle-room is allowed?
+color colorToMatch = color(255,0,0);   // color to look for
+float tolerance =    5;                // how much wiggle-room is 
+                                       // allowed in matching the color?
+Capture webcam;
 
 
 void setup() {
-  size(800,800);
+  size(1280,720);
 
-  // load the image and display it
-  PImage img = loadImage("../Blobs.jpg");
-  image(img, 0,0);
-  
-  // find the first instance of a certain color
-  // this can be useful if your target is small, or
-  // if you just want to know if it is there or not
-  PVector first = findColor(img, colorToMatch, tolerance);
-  
-  // if the color was found, display the location
-  if (first != null) {
-    println("First matching color: " + first.x + ", " + first.y);
-    fill(255,0,0);
-    noStroke();
-    ellipse(first.x, first.y, 30,30);
+  // start the webcam
+  String[] inputs = Capture.list();
+  if (inputs.length == 0) {
+    println("Couldn't detect any webcams connected!");
+    exit();
   }
+  webcam = new Capture(this, inputs[0]);
+  webcam.start();
+}
+
+
+void draw() {
+  if (webcam.available()) {
+    
+    // read from the webcam
+    webcam.read();
+    image(webcam, 0,0);
+    
+    // find the first instance of a certain color
+    // this can be useful if your target is small, or
+    // if you just want to know if it is there or not
+    PVector first = findColor(webcam, colorToMatch, tolerance);
+    
+    // if the color was found, display the location
+    if (first != null) {
+      fill(colorToMatch);
+      stroke(255);
+      strokeWeight(2);
+      ellipse(first.x, first.y, 30,30);
+    }
+  }
+}
+
+
+// click anywhere on the image to set the target color
+void mousePressed() {
+  loadPixels();
+  colorToMatch = pixels[mouseY*width+mouseX];
 }
 
 
